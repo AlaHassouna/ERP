@@ -83,6 +83,7 @@ action = st.selectbox(
         "Caisse",
         "Encaissement d'argent (+)",
         "Décaissement d'argent (-)",
+        "Fournisseurs"
         
     ],
 
@@ -242,3 +243,137 @@ if action=="Décaissement d'argent (-)":
                         st.success("Terminé avec succès.")
     st.dataframe(dataDec)                     
 
+if action == "Fournisseurs":
+    with st.form(key="AYD_form"):
+        # Fetch existing data
+        existing_data=readExcel("Fournisseurs",9)
+        # if(len(existing_data)>0):
+        #     st.dataframe(existing_data.sort_values(by='ID Fournisseur', ascending=False))
+        # else :
+        #     st.dataframe(existing_data)
+        
+        
+        if(len(existing_data)>0):
+            existing_data=existing_data.sort_values(by='ID Fournisseur', ascending=False)
+            
+            id=existing_data["ID Fournisseur"].iloc[0]+1
+            # # print("new id : ",id)
+        else :
+            
+            id=1
+            # # print("new id : ",id)
+        st.markdown("Ajouter un fournisseur")
+        
+        fournisseur_name = st.text_input(label="Nom du fournisseur*")
+        
+        adresse = st.text_input(label="Adresse*")
+        numero_de_telephone_1 = st.text_input(label="Numéro de téléphone 1*")
+        numero_de_telephone_2 = st.text_input(label="Numéro de téléphone 2")
+        description=st.text_area(label="Description")
+        total = st.text_input(label="Montant total créditeur").replace(",",".")
+        avance = st.text_input(label="Montant avance créditeur").replace(",",".")
+        # reste = st.text_input(label="Montant restant créditeur")
+       
+        # Mark mandatory fields
+        st.markdown("**Obligatoire*")
+        
+        submit_button = st.form_submit_button(label="Confirmer")
+    
+        
+        # If the submit button is pressed
+        if submit_button:
+            # Check if all mandatory fields are filled
+            if not(verifChamp(fournisseur_name,adresse,numero_de_telephone_1))  :
+                st.warning("Assurez-vous que tous les champs obligatoires sont remplis.")
+                st.stop()
+            
+            else:
+                # Create a new row of vendor data
+                matPre_data = pd.DataFrame(
+                    [
+                        {
+                            "ID Fournisseur":id,
+                            "Nom du fournisseur": fournisseur_name,
+                            "Adresse": adresse,
+                            "Numéro de téléphone 1": numero_de_telephone_1,
+                            "Numéro de téléphone 2": numero_de_telephone_2,
+                            "Description": description,
+                            "Montant total créditeur":total,
+                            "Montant avance créditeur":avance,
+                            "Montant restant créditeur":float(total)-float(avance)
+                        }
+                    ]
+                )
+
+                # Add the new vendor data to the existing data
+                if update(existing_data,matPre_data,"Fournisseurs"):
+
+                    st.success("Ajoutée avec succès.")
+    
+    if(len(existing_data)>0):
+        st.markdown("Sélectionnez et mettez à jour.")
+
+        four_to_update = st.selectbox(
+                "Sélectionnez un fournisseur", options=(existing_data['ID Fournisseur'].astype(str) + ' - ' +existing_data["Nom du fournisseur"]).tolist()
+            )
+        try:
+                
+                four_to_update_id=float(four_to_update.split(" - ")[0].strip())
+        except:
+                pass
+            
+        four_data = existing_data[existing_data["ID Fournisseur"] == four_to_update_id].iloc[
+                0
+            ]
+        with st.form(key="update_form"):
+            
+            fournisseur_name = st.text_input(label="Nom du fournisseur*",value=four_data["Nom du fournisseur"])
+        
+            adresse = st.text_input(label="Adresse*",value=four_data["Adresse"])
+            numero_de_telephone_1 = st.text_input(label="Numéro de téléphone 1*",value=four_data["Numéro de téléphone 1"])
+            numero_de_telephone_2 = st.text_input(label="Numéro de téléphone 2",value=four_data["Numéro de téléphone 2"])
+            description=st.text_area(label="Description",value=four_data["Description"])
+            # prix_total= st.text_input(label="Prix total*",value=four_data["Prix total"])
+            # fournisseur = st.selectbox("Fournisseur*", options=FOURNISSEURS, index=FOURNISSEURS.index(four_data["Nom du fournisseur"]))
+            total = st.text_input(label="Montant total créditeur",value=four_data["Montant total créditeur"]).replace(",",".")
+            avance = st.text_input(label="Montant avance créditeur",value=four_data["Montant avance créditeur"]).replace(",",".")
+            # reste = st.text_input(label="Montant restant créditeur",value=four_data["Montant restant créditeur"])
+        
+
+            st.markdown("**required*")
+            update_button = st.form_submit_button(label="Mettre à jour les détails sur le fournisseur")
+
+            if update_button:
+                if not(verifChamp(fournisseur_name,adresse,numero_de_telephone_1))  :
+                    st.warning("Assurez-vous que tous les champs obligatoires sont remplis.")
+                    st.stop()
+                else:
+                    # Removing old entry
+                    existing_data.drop(
+                        existing_data[
+                            existing_data["ID Fournisseur"] == four_to_update_id
+                        ].index,
+                        inplace=True,
+                    )
+                    # Creating updated data entry
+                    updated_four_data = pd.DataFrame(
+                        [
+                            {
+                            
+                            "ID Fournisseur":four_to_update_id,
+                            "Nom du fournisseur": fournisseur_name,
+                            "Adresse": adresse,
+                            "Numéro de téléphone 1": str(numero_de_telephone_1).replace("."," "),
+                            "Numéro de téléphone 2": str(numero_de_telephone_2).replace("."," "),
+                            "Description": description,
+                            "Montant total créditeur":total,
+                            "Montant avance créditeur":avance,
+                            "Montant restant créditeur":float(total)-float(avance)
+                            }
+                        ]
+                    )
+                    # print(numero_de_telephone_2)
+                    # Adding updated data to the dataframe
+                    if update(existing_data,updated_four_data,"Fournisseurs"):
+                        st.success("Mise à jour avec succès !")
+        st.dataframe(existing_data)
